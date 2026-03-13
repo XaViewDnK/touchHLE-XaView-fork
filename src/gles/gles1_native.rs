@@ -884,6 +884,10 @@ impl GLES for GLES1Native<'_> {
     unsafe fn GetVertexAttribiv(&mut self, index: GLuint, pname: GLenum, params: *mut GLint) {
         touchHLE_gl_bindings::gles20::GetVertexAttribiv(index, pname, params)
     }
+    // NativeVertAttribPtr
+    unsafe fn GetVertexAttribPointerv(&mut self, index: GLuint, pname: GLenum, pointer: *mut *mut GLvoid) {
+        touchHLE_gl_bindings::gles20::GetVertexAttribPointerv(index, pname, pointer)
+    }
 
     // OES_framebuffer_object -> EXT_framebuffer_object
     // EsTwoFboGen

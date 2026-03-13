@@ -2153,6 +2153,10 @@ impl GLES for GLES1OnGL2<'_> {
     unsafe fn GetVertexAttribiv(&mut self, index: GLuint, pname: GLenum, params: *mut GLint) {
         crate::gles::gl21compat_raw::GetVertexAttribiv(index, pname, params)
     }
+    // CompatVertAttribPtr
+    unsafe fn GetVertexAttribPointerv(&mut self, index: GLuint, pname: GLenum, pointer: *mut *mut GLvoid) {
+        crate::gles::gl21compat_raw::GetVertexAttribPointerv(index, pname, pointer)
+    }
 
     // OES_framebuffer_object -> EXT_framebuffer_object
     unsafe fn GenFramebuffersOES(&mut self, n: GLsizei, framebuffers: *mut GLuint) {

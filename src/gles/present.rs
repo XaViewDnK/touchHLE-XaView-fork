@@ -65,7 +65,12 @@ pub unsafe fn present_frame(
     let mut old_dither: GLboolean = 0;
     let mut old_color_mask = [0u8; 4];
     let mut old_depth_mask: GLboolean = 0;
-    let mut old_attribs = [0u8; 8];
+    #[derive(Clone, Copy)]
+    struct AttribState { // VboStateSave
+        enabled: GLint, size: GLint, type_: GLint, normalized: GLint,
+        stride: GLint, buffer_binding: GLint, pointer: *mut GLvoid,
+    }
+    let mut old_attribs = [AttribState { enabled: 0, size: 4, type_: gles11::FLOAT as GLint, normalized: 0, stride: 0, buffer_binding: 0, pointer: std::ptr::null_mut() }; 8];
 
     if is_gles2 {
         gles.GetIntegerv(0x8B8D, &mut old_prog);
@@ -81,9 +86,13 @@ pub unsafe fn present_frame(
         gles.GetBooleanv(gles11::DEPTH_WRITEMASK, &mut old_depth_mask);
         
         for i in 0..8 {
-            let mut status: GLint = 0;
-            gles.GetVertexAttribiv(i, 0x8622, &mut status);
-            old_attribs[i as usize] = status as u8;
+            gles.GetVertexAttribiv(i, 0x8622, &mut old_attribs[i as usize].enabled);
+            gles.GetVertexAttribiv(i, 0x8623, &mut old_attribs[i as usize].size);
+            gles.GetVertexAttribiv(i, 0x8624, &mut old_attribs[i as usize].type_);
+            gles.GetVertexAttribiv(i, 0x8625, &mut old_attribs[i as usize].normalized);
+            gles.GetVertexAttribiv(i, 0x8626, &mut old_attribs[i as usize].stride);
+            gles.GetVertexAttribiv(i, 0x889F, &mut old_attribs[i as usize].buffer_binding);
+            gles.GetVertexAttribPointerv(i, 0x8645, &mut old_attribs[i as usize].pointer);
             gles.DisableVertexAttribArray(i);
         }
 
@@ -115,7 +124,7 @@ pub unsafe fn present_frame(
 
     if is_gles2 {
         let vs_src = "attribute vec4 position;\nattribute vec2 texCoord;\nuniform mat4 texMatrix;\nvarying vec2 v_texCoord;\nvoid main() {\n    gl_Position = position;\n    v_texCoord = (texMatrix * vec4(texCoord, 0.0, 1.0)).xy;\n}\0";
-        let fs_src = "precision mediump float;\nvarying vec2 v_texCoord;\nuniform sampler2D tex;\nuniform vec4 color;\nvoid main() {\n    vec4 texColor = texture2D(tex, v_texCoord);\n    gl_FragColor = vec4(mix(texColor.rgb, color.rgb, color.a) + vec3(0.0, 0.2, 0.0), 1.0);\n}\0";
+        let fs_src = "precision mediump float;\nvarying vec2 v_texCoord;\nuniform sampler2D tex;\nuniform vec4 color;\nvoid main() {\n    vec4 texColor = texture2D(tex, v_texCoord);\n    if (texColor.rgb == vec3(0.0)) {\n        gl_FragColor = vec4(0.0, 0.0, 0.4, 1.0);\n    } else {\n        gl_FragColor = vec4(mix(texColor.rgb, color.rgb, color.a) + vec3(0.0, 0.2, 0.0), 1.0);\n    }\n}\0";
         
         let vs = gles.CreateShader(0x8B31);
         let vs_ptr = [vs_src.as_ptr() as *const std::ffi::c_char];
@@ -201,10 +210,16 @@ pub unsafe fn present_frame(
         gles.ColorMask(old_color_mask[0], old_color_mask[1], old_color_mask[2], old_color_mask[3]);
         gles.DepthMask(old_depth_mask);
         for i in 0..8 {
-            if old_attribs[i as usize] != 0 {
+            let attr = &old_attribs[i as usize];
+            gles.BindBuffer(gles11::ARRAY_BUFFER, attr.buffer_binding as GLuint);
+            gles.VertexAttribPointer(i, attr.size, attr.type_ as GLenum, attr.normalized as GLboolean, attr.stride, attr.pointer as *const _);
+            if attr.enabled != 0 {
                 gles.EnableVertexAttribArray(i);
+            } else {
+                gles.DisableVertexAttribArray(i);
             }
         }
+        gles.BindBuffer(gles11::ARRAY_BUFFER, old_array_buf as GLuint);
     } else {
         gles.BindBuffer(gles11::ARRAY_BUFFER, 0);
         gles.EnableClientState(gles11::VERTEX_ARRAY);
