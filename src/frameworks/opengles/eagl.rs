@@ -594,6 +594,9 @@ unsafe fn present_renderbuffer(env: &mut Environment) {
 
     // To avoid confusing the guest app, we need to be able to undo any
     // state changes we make.
+    let old_active_texture = get_int(gles, gles11::ACTIVE_TEXTURE) as GLenum; // SaveActiveTex
+    gles.ActiveTexture(gles11::TEXTURE0);
+
     let old_framebuffer: GLuint = get_int(gles, gles11::FRAMEBUFFER_BINDING_OES) as _;
     let old_texture_2d: GLuint = get_int(gles, gles11::TEXTURE_BINDING_2D) as _;
 
@@ -615,7 +618,7 @@ unsafe fn present_renderbuffer(env: &mut Environment) {
     gles.CopyTexImage2D(
         gles11::TEXTURE_2D,
         0,
-        gles11::RGB as _,
+        gles11::RGBA as _, // RgbaCopyFix
         0,
         0,
         width,
@@ -624,11 +627,10 @@ unsafe fn present_renderbuffer(env: &mut Environment) {
     );
     // The texture will not have any mip levels so we must ensure the filter
     // does not use them, else rendering will fail.
-    gles.TexParameteri(
-        gles11::TEXTURE_2D,
-        gles11::TEXTURE_MIN_FILTER,
-        gles11::LINEAR as _,
-    );
+    gles.TexParameteri(gles11::TEXTURE_2D, gles11::TEXTURE_MIN_FILTER, gles11::LINEAR as _);
+    gles.TexParameteri(gles11::TEXTURE_2D, gles11::TEXTURE_MAG_FILTER, gles11::LINEAR as _);
+    gles.TexParameteri(gles11::TEXTURE_2D, gles11::TEXTURE_WRAP_S, gles11::CLAMP_TO_EDGE as _); // NpotWrapFix
+    gles.TexParameteri(gles11::TEXTURE_2D, gles11::TEXTURE_WRAP_T, gles11::CLAMP_TO_EDGE as _);
 
     // Clean up the framebuffer object since we no longer need it.
     // This also sets the framebuffer bindings back to zero, so rendering
@@ -678,30 +680,44 @@ unsafe fn present_renderbuffer(env: &mut Environment) {
     };
     let old_clear_color: [GLfloat; 4] = get_floats(gles, gles11::COLOR_CLEAR_VALUE);
     let old_array_buffer: GLuint = get_int(gles, gles11::ARRAY_BUFFER_BINDING) as _;
-    let old_vertex_array_binding: GLuint = get_int(gles, gles11::VERTEX_ARRAY_BUFFER_BINDING) as _;
-    let old_vertex_array_size: GLint = get_int(gles, gles11::VERTEX_ARRAY_SIZE);
-    let old_vertex_array_type: GLenum = get_int(gles, gles11::VERTEX_ARRAY_TYPE) as _;
-    let old_vertex_array_stride: GLsizei = get_int(gles, gles11::VERTEX_ARRAY_STRIDE) as _;
-    let old_vertex_array_pointer = get_ptr(gles, gles11::VERTEX_ARRAY_POINTER);
-    let old_tex_coord_array_binding: GLuint =
-        get_int(gles, gles11::TEXTURE_COORD_ARRAY_BUFFER_BINDING) as _;
-    let old_tex_coord_array_size: GLint = get_int(gles, gles11::TEXTURE_COORD_ARRAY_SIZE);
-    let old_tex_coord_array_type: GLenum = get_int(gles, gles11::TEXTURE_COORD_ARRAY_TYPE) as _;
-    let old_tex_coord_array_stride: GLsizei =
-        get_int(gles, gles11::TEXTURE_COORD_ARRAY_STRIDE) as _;
-    let old_tex_coord_array_pointer = get_ptr(gles, gles11::TEXTURE_COORD_ARRAY_POINTER);
     let old_blend_sfactor: GLenum = get_int(gles, gles11::BLEND_SRC) as _;
     let old_blend_dfactor: GLenum = get_int(gles, gles11::BLEND_DST) as _;
 
-    let old_tex_env_mode = get_tex_env_int(gles, gles11::TEXTURE_ENV, gles11::TEXTURE_ENV_MODE);
-    // if the mode is REPLACE, we don't have to reset the other texture
-    // environment values
-    let tex_env_mode_arr = [gles11::REPLACE; 1];
-    gles.TexEnviv(
-        gles11::TEXTURE_ENV,
-        gles11::TEXTURE_ENV_MODE,
-        tex_env_mode_arr.as_ptr().cast(),
-    );
+    // EsOneStateOnlyFix
+    let mut old_vertex_array_binding = 0;
+    let mut old_vertex_array_size = 0;
+    let mut old_vertex_array_type = 0;
+    let mut old_vertex_array_stride = 0;
+    let mut old_vertex_array_pointer = std::ptr::null();
+    let mut old_tex_coord_array_binding = 0;
+    let mut old_tex_coord_array_size = 0;
+    let mut old_tex_coord_array_type = 0;
+    let mut old_tex_coord_array_stride = 0;
+    let mut old_tex_coord_array_pointer = std::ptr::null();
+    let mut old_tex_env_mode = 0;
+
+    if !is_gles2 {
+        old_vertex_array_binding = get_int(gles, gles11::VERTEX_ARRAY_BUFFER_BINDING) as _;
+        old_vertex_array_size = get_int(gles, gles11::VERTEX_ARRAY_SIZE);
+        old_vertex_array_type = get_int(gles, gles11::VERTEX_ARRAY_TYPE) as _;
+        old_vertex_array_stride = get_int(gles, gles11::VERTEX_ARRAY_STRIDE) as _;
+        old_vertex_array_pointer = get_ptr(gles, gles11::VERTEX_ARRAY_POINTER);
+        old_tex_coord_array_binding = get_int(gles, gles11::TEXTURE_COORD_ARRAY_BUFFER_BINDING) as _;
+        old_tex_coord_array_size = get_int(gles, gles11::TEXTURE_COORD_ARRAY_SIZE);
+        old_tex_coord_array_type = get_int(gles, gles11::TEXTURE_COORD_ARRAY_TYPE) as _;
+        old_tex_coord_array_stride = get_int(gles, gles11::TEXTURE_COORD_ARRAY_STRIDE) as _;
+        old_tex_coord_array_pointer = get_ptr(gles, gles11::TEXTURE_COORD_ARRAY_POINTER);
+
+        old_tex_env_mode = get_tex_env_int(gles, gles11::TEXTURE_ENV, gles11::TEXTURE_ENV_MODE);
+        // if the mode is REPLACE, we don't have to reset the other texture
+        // environment values
+        let tex_env_mode_arr = [gles11::REPLACE; 1];
+        gles.TexEnviv(
+            gles11::TEXTURE_ENV,
+            gles11::TEXTURE_ENV_MODE,
+            tex_env_mode_arr.as_ptr().cast(),
+        );
+    }
 
     // Draw the quad
     present_frame(gles, viewport, rotation_matrix, virtual_cursor_visible_at);
@@ -785,6 +801,7 @@ unsafe fn present_renderbuffer(env: &mut Environment) {
     // Restore the other bindings
     gles.BindTexture(gles11::TEXTURE_2D, old_texture_2d);
     gles.BindFramebufferOES(gles11::FRAMEBUFFER_OES, old_framebuffer);
+    gles.ActiveTexture(old_active_texture); // RestoreActiveTex
 
     // { let err = gles.GetError(); if err != 0 { panic!("{:#x}", err); } }
 }
