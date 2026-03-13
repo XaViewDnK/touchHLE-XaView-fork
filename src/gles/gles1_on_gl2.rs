@@ -2054,6 +2054,9 @@ impl GLES for GLES1OnGL2<'_> {
     unsafe fn CompileShader(&mut self, shader: GLuint) {
         crate::gles::gl21compat_raw::CompileShader(shader)
     }
+    unsafe fn DeleteShader(&mut self, shader: GLuint) { // CompatDeleteShader
+        crate::gles::gl21compat_raw::DeleteShader(shader)
+    }
     unsafe fn GetShaderiv(&mut self, shader: GLuint, pname: GLenum, params: *mut GLint) {
         crate::gles::gl21compat_raw::GetShaderiv(shader, pname, params)
     }
@@ -2087,12 +2090,21 @@ impl GLES for GLES1OnGL2<'_> {
     unsafe fn VertexAttribPointer(&mut self, indx: GLuint, size: GLint, type_: GLenum, normalized: GLboolean, stride: GLsizei, ptr: *const GLvoid) {
         crate::gles::gl21compat_raw::VertexAttribPointer(indx, size, type_, normalized, stride, ptr)
     }
-    unsafe fn EnableVertexAttribArray(&mut self, index: GLuint) {
-        crate::gles::gl21compat_raw::EnableVertexAttribArray(index)
-    }
     unsafe fn DisableVertexAttribArray(&mut self, index: GLuint) {
         crate::gles::gl21compat_raw::DisableVertexAttribArray(index)
     }
+    unsafe fn EnableVertexAttribArray(&mut self, index: GLuint) {
+        crate::gles::gl21compat_raw::EnableVertexAttribArray(index)
+    }
+    // AddAttribCompat
+    unsafe fn VertexAttrib1f(&mut self, indx: GLuint, x: GLfloat) { crate::gles::gl21compat_raw::VertexAttrib1f(indx, x) }
+    unsafe fn VertexAttrib2f(&mut self, indx: GLuint, x: GLfloat, y: GLfloat) { crate::gles::gl21compat_raw::VertexAttrib2f(indx, x, y) }
+    unsafe fn VertexAttrib3f(&mut self, indx: GLuint, x: GLfloat, y: GLfloat, z: GLfloat) { crate::gles::gl21compat_raw::VertexAttrib3f(indx, x, y, z) }
+    unsafe fn VertexAttrib4f(&mut self, indx: GLuint, x: GLfloat, y: GLfloat, z: GLfloat, w: GLfloat) { crate::gles::gl21compat_raw::VertexAttrib4f(indx, x, y, z, w) }
+    unsafe fn VertexAttrib1fv(&mut self, indx: GLuint, values: *const GLfloat) { crate::gles::gl21compat_raw::VertexAttrib1fv(indx, values) }
+    unsafe fn VertexAttrib2fv(&mut self, indx: GLuint, values: *const GLfloat) { crate::gles::gl21compat_raw::VertexAttrib2fv(indx, values) }
+    unsafe fn VertexAttrib3fv(&mut self, indx: GLuint, values: *const GLfloat) { crate::gles::gl21compat_raw::VertexAttrib3fv(indx, values) }
+    unsafe fn VertexAttrib4fv(&mut self, indx: GLuint, values: *const GLfloat) { crate::gles::gl21compat_raw::VertexAttrib4fv(indx, values) }
     unsafe fn Uniform1i(&mut self, location: GLint, v0: GLint) {
         crate::gles::gl21compat_raw::Uniform1i(location, v0)
     }
@@ -2105,9 +2117,20 @@ impl GLES for GLES1OnGL2<'_> {
     unsafe fn Uniform3f(&mut self, location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat) {
         crate::gles::gl21compat_raw::Uniform3f(location, v0, v1, v2)
     }
+    // UniformCompatArrays
     unsafe fn Uniform4f(&mut self, location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat, v3: GLfloat) {
         crate::gles::gl21compat_raw::Uniform4f(location, v0, v1, v2, v3)
     }
+    unsafe fn Uniform1fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { crate::gles::gl21compat_raw::Uniform1fv(location, count, value) }
+    unsafe fn Uniform2fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { crate::gles::gl21compat_raw::Uniform2fv(location, count, value) }
+    unsafe fn Uniform3fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { crate::gles::gl21compat_raw::Uniform3fv(location, count, value) }
+    unsafe fn Uniform4fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { crate::gles::gl21compat_raw::Uniform4fv(location, count, value) }
+    unsafe fn Uniform1iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { crate::gles::gl21compat_raw::Uniform1iv(location, count, value) }
+    unsafe fn Uniform2iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { crate::gles::gl21compat_raw::Uniform2iv(location, count, value) }
+    unsafe fn Uniform3iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { crate::gles::gl21compat_raw::Uniform3iv(location, count, value) }
+    unsafe fn Uniform4iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { crate::gles::gl21compat_raw::Uniform4iv(location, count, value) }
+    unsafe fn UniformMatrix2fv(&mut self, location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) { crate::gles::gl21compat_raw::UniformMatrix2fv(location, count, transpose, value) }
+    unsafe fn UniformMatrix3fv(&mut self, location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) { crate::gles::gl21compat_raw::UniformMatrix3fv(location, count, transpose, value) }
     unsafe fn UniformMatrix4fv(&mut self, location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) {
         crate::gles::gl21compat_raw::UniformMatrix4fv(location, count, transpose, value)
     }
@@ -2125,6 +2148,14 @@ impl GLES for GLES1OnGL2<'_> {
     }
     unsafe fn BlendColor(&mut self, red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) {
         crate::gles::gl21compat_raw::BlendColor(red, green, blue, alpha)
+    }
+    // AddAttribCompat
+    unsafe fn GetVertexAttribiv(&mut self, index: GLuint, pname: GLenum, params: *mut GLint) {
+        crate::gles::gl21compat_raw::GetVertexAttribiv(index, pname, params)
+    }
+    // CompatVertAttribPtr
+    unsafe fn GetVertexAttribPointerv(&mut self, index: GLuint, pname: GLenum, pointer: *mut *mut GLvoid) {
+        crate::gles::gl21compat_raw::GetVertexAttribPointerv(index, pname, pointer)
     }
 
     // OES_framebuffer_object -> EXT_framebuffer_object

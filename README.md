@@ -1,5 +1,7 @@
 XaView FORK:
 
+OpenGL ES 2.0: Partically 🕐 (Asphalt 6 many graphic issues, Asphalt 7 working but bkack screen, no render)
+
 =Device selection in quick settings (iPod, iPad, iPhone) [UPD 12.03.26 09-14: All devices configs now supported!]
 
 =Retina and its scaling support

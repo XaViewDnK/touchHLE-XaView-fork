@@ -103,7 +103,9 @@ pub struct GLES1Native<'gl_ctx> {
     is_gles2: bool,
 }
 
+// EsTwoCheckImpl
 impl GLES for GLES1Native<'_> {
+    fn is_gles2(&self) -> bool { self.is_gles2 }
     unsafe fn driver_description(&self) -> String {
         let version = CStr::from_ptr(gles11::GetString(gles11::VERSION) as *const _);
         let vendor = CStr::from_ptr(gles11::GetString(gles11::VENDOR) as *const _);
@@ -783,6 +785,9 @@ impl GLES for GLES1Native<'_> {
     unsafe fn CompileShader(&mut self, shader: GLuint) {
         touchHLE_gl_bindings::gles20::CompileShader(shader)
     }
+    unsafe fn DeleteShader(&mut self, shader: GLuint) { // NativeDeleteShader
+        touchHLE_gl_bindings::gles20::DeleteShader(shader)
+    }
     unsafe fn GetShaderiv(&mut self, shader: GLuint, pname: GLenum, params: *mut GLint) {
         touchHLE_gl_bindings::gles20::GetShaderiv(shader, pname, params)
     }
@@ -816,12 +821,21 @@ impl GLES for GLES1Native<'_> {
     unsafe fn VertexAttribPointer(&mut self, indx: GLuint, size: GLint, type_: GLenum, normalized: GLboolean, stride: GLsizei, ptr: *const GLvoid) {
         touchHLE_gl_bindings::gles20::VertexAttribPointer(indx, size, type_, normalized, stride, ptr)
     }
-    unsafe fn EnableVertexAttribArray(&mut self, index: GLuint) {
-        touchHLE_gl_bindings::gles20::EnableVertexAttribArray(index)
-    }
     unsafe fn DisableVertexAttribArray(&mut self, index: GLuint) {
         touchHLE_gl_bindings::gles20::DisableVertexAttribArray(index)
     }
+    unsafe fn EnableVertexAttribArray(&mut self, index: GLuint) {
+        touchHLE_gl_bindings::gles20::EnableVertexAttribArray(index)
+    }
+    // AddAttribNative
+    unsafe fn VertexAttrib1f(&mut self, indx: GLuint, x: GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib1f(indx, x) }
+    unsafe fn VertexAttrib2f(&mut self, indx: GLuint, x: GLfloat, y: GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib2f(indx, x, y) }
+    unsafe fn VertexAttrib3f(&mut self, indx: GLuint, x: GLfloat, y: GLfloat, z: GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib3f(indx, x, y, z) }
+    unsafe fn VertexAttrib4f(&mut self, indx: GLuint, x: GLfloat, y: GLfloat, z: GLfloat, w: GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib4f(indx, x, y, z, w) }
+    unsafe fn VertexAttrib1fv(&mut self, indx: GLuint, values: *const GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib1fv(indx, values) }
+    unsafe fn VertexAttrib2fv(&mut self, indx: GLuint, values: *const GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib2fv(indx, values) }
+    unsafe fn VertexAttrib3fv(&mut self, indx: GLuint, values: *const GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib3fv(indx, values) }
+    unsafe fn VertexAttrib4fv(&mut self, indx: GLuint, values: *const GLfloat) { touchHLE_gl_bindings::gles20::VertexAttrib4fv(indx, values) }
     unsafe fn Uniform1i(&mut self, location: GLint, v0: GLint) {
         touchHLE_gl_bindings::gles20::Uniform1i(location, v0)
     }
@@ -834,9 +848,20 @@ impl GLES for GLES1Native<'_> {
     unsafe fn Uniform3f(&mut self, location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat) {
         touchHLE_gl_bindings::gles20::Uniform3f(location, v0, v1, v2)
     }
+    // UniformNativeArrays
     unsafe fn Uniform4f(&mut self, location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat, v3: GLfloat) {
         touchHLE_gl_bindings::gles20::Uniform4f(location, v0, v1, v2, v3)
     }
+    unsafe fn Uniform1fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { touchHLE_gl_bindings::gles20::Uniform1fv(location, count, value) }
+    unsafe fn Uniform2fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { touchHLE_gl_bindings::gles20::Uniform2fv(location, count, value) }
+    unsafe fn Uniform3fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { touchHLE_gl_bindings::gles20::Uniform3fv(location, count, value) }
+    unsafe fn Uniform4fv(&mut self, location: GLint, count: GLsizei, value: *const GLfloat) { touchHLE_gl_bindings::gles20::Uniform4fv(location, count, value) }
+    unsafe fn Uniform1iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { touchHLE_gl_bindings::gles20::Uniform1iv(location, count, value) }
+    unsafe fn Uniform2iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { touchHLE_gl_bindings::gles20::Uniform2iv(location, count, value) }
+    unsafe fn Uniform3iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { touchHLE_gl_bindings::gles20::Uniform3iv(location, count, value) }
+    unsafe fn Uniform4iv(&mut self, location: GLint, count: GLsizei, value: *const GLint) { touchHLE_gl_bindings::gles20::Uniform4iv(location, count, value) }
+    unsafe fn UniformMatrix2fv(&mut self, location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) { touchHLE_gl_bindings::gles20::UniformMatrix2fv(location, count, transpose, value) }
+    unsafe fn UniformMatrix3fv(&mut self, location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) { touchHLE_gl_bindings::gles20::UniformMatrix3fv(location, count, transpose, value) }
     unsafe fn UniformMatrix4fv(&mut self, location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) {
         touchHLE_gl_bindings::gles20::UniformMatrix4fv(location, count, transpose, value)
     }
@@ -854,6 +879,14 @@ impl GLES for GLES1Native<'_> {
     }
     unsafe fn BlendColor(&mut self, red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) {
         touchHLE_gl_bindings::gles20::BlendColor(red, green, blue, alpha)
+    }
+    // AddAttribNative
+    unsafe fn GetVertexAttribiv(&mut self, index: GLuint, pname: GLenum, params: *mut GLint) {
+        touchHLE_gl_bindings::gles20::GetVertexAttribiv(index, pname, params)
+    }
+    // NativeVertAttribPtr
+    unsafe fn GetVertexAttribPointerv(&mut self, index: GLuint, pname: GLenum, pointer: *mut *mut GLvoid) {
+        touchHLE_gl_bindings::gles20::GetVertexAttribPointerv(index, pname, pointer)
     }
 
     // OES_framebuffer_object -> EXT_framebuffer_object
