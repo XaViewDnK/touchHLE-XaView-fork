@@ -747,31 +747,31 @@ unsafe fn present_renderbuffer(env: &mut Environment) {
         old_clear_color[2],
         old_clear_color[3],
     );
-    // GL_ARRAY_BUFFER is implicitly used by the Pointer functions but is also
-    // an independent binding.
-    gles.BindBuffer(gles11::ARRAY_BUFFER, old_vertex_array_binding);
-    gles.VertexPointer(
-        old_vertex_array_size,
-        old_vertex_array_type,
-        old_vertex_array_stride,
-        old_vertex_array_pointer,
-    );
-    gles.BindBuffer(gles11::ARRAY_BUFFER, old_tex_coord_array_binding);
-    gles.TexCoordPointer(
-        old_tex_coord_array_size,
-        old_tex_coord_array_type,
-        old_tex_coord_array_stride,
-        old_tex_coord_array_pointer,
-    );
+    if !is_gles2 {
+        // FixPointerBypass
+        gles.BindBuffer(gles11::ARRAY_BUFFER, old_vertex_array_binding);
+        gles.VertexPointer(
+            old_vertex_array_size,
+            old_vertex_array_type,
+            old_vertex_array_stride,
+            old_vertex_array_pointer,
+        );
+        gles.BindBuffer(gles11::ARRAY_BUFFER, old_tex_coord_array_binding);
+        gles.TexCoordPointer(
+            old_tex_coord_array_size,
+            old_tex_coord_array_type,
+            old_tex_coord_array_stride,
+            old_tex_coord_array_pointer,
+        );
+        let old_tex_env_mode_arr = [old_tex_env_mode; 1];
+        gles.TexEnviv(
+            gles11::TEXTURE_ENV,
+            gles11::TEXTURE_ENV_MODE,
+            old_tex_env_mode_arr.as_ptr().cast(),
+        );
+    }
     gles.BindBuffer(gles11::ARRAY_BUFFER, old_array_buffer);
     gles.BlendFunc(old_blend_sfactor, old_blend_dfactor);
-
-    let old_tex_env_mode_arr = [old_tex_env_mode; 1];
-    gles.TexEnviv(
-        gles11::TEXTURE_ENV,
-        gles11::TEXTURE_ENV_MODE,
-        old_tex_env_mode_arr.as_ptr().cast(),
-    );
 
     std::mem::drop(gles_boxed);
 
