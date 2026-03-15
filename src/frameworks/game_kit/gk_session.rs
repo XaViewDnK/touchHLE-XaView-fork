@@ -30,7 +30,33 @@ pub const CLASSES: ClassExports = objc_classes! {
     nil
 }
 
-- (())setDelegate:(id)_delegate {
+- (())setDataReceiveHandler:(id)_handler
+               withContext:(id)_context {
+}
+
+- (())connectToPeer:(id)_peerID
+        withTimeout:(f64)_timeout {
+}
+
+- (())disconnectFromAllPeers {
+}
+
+- (())disconnectPeerFromAllPeers:(id)_peerID {
+}
+
+- (id)peersWithConnectionState:(i32)_state {
+    nil
+}
+
+- (())sendData:(id)_data
+       toPeers:(id)_peers
+      withDataMode:(i32)_mode
+             error:(id)_error {
+}
+
+- (())sendDataToAllPeers:(id)_data
+           withDataMode:(i32)_mode
+                  error:(id)_error {
 }
 
 @end
