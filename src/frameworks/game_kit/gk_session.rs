@@ -12,7 +12,27 @@ pub const CLASSES: ClassExports = objc_classes! {
 (env, this, _cmd);
 
 @implementation GKSession: NSObject
-// TODO
+
+- (id)initWithSessionID:(id)sessionID // NSString*
+           displayName:(id)displayName // NSString*
+           sessionMode:(i32)sessionMode {
+    this
+}
+
+- (bool)isAvailable {
+    false
+}
+
+- (())setAvailable:(bool)available {
+}
+
+- (id)delegate {
+    nil
+}
+
+- (())setDelegate:(id)delegate {
+}
+
 @end
 
 @implementation GKPeerPickerController: NSObject
