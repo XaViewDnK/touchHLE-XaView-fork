@@ -30,12 +30,42 @@ pub const CLASSES: ClassExports = objc_classes! {
     nil
 }
 
+- (())setDelegate:(id)_delegate {
+}
+
+- (id)sessionID {
+    nil
+}
+
+- (id)displayName {
+    nil
+}
+
+- (id)peerID {
+    nil
+}
+
+- (i32)sessionMode {
+    0
+}
+
 - (())setDataReceiveHandler:(id)_handler
                withContext:(id)_context {
 }
 
 - (())connectToPeer:(id)_peerID
         withTimeout:(f64)_timeout {
+}
+
+- (())cancelConnectToPeer:(id)_peerID {
+}
+
+- (bool)acceptConnectionFromPeer:(id)_peerID
+                           error:(id)_error {
+    false
+}
+
+- (())denyConnectionFromPeer:(id)_peerID {
 }
 
 - (())disconnectFromAllPeers {
@@ -48,10 +78,14 @@ pub const CLASSES: ClassExports = objc_classes! {
     nil
 }
 
+- (id)displayNameForPeer:(id)_peerID {
+    nil
+}
+
 - (())sendData:(id)_data
        toPeers:(id)_peers
-      withDataMode:(i32)_mode
-             error:(id)_error {
+  withDataMode:(i32)_mode
+         error:(id)_error {
 }
 
 - (())sendDataToAllPeers:(id)_data
