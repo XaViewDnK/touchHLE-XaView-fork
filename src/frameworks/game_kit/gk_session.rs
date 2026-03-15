@@ -5,7 +5,7 @@
  */
 //! `GKSession` and related peer-to-peer classes.
 
-use crate::objc::{objc_classes, ClassExports};
+use crate::objc::{id, nil, objc_classes, ClassExports};
 
 pub const CLASSES: ClassExports = objc_classes! {
 
