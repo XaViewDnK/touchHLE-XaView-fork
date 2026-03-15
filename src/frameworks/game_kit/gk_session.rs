@@ -13,9 +13,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 @implementation GKSession: NSObject
 
-- (id)initWithSessionID:(id)sessionID // NSString*
-           displayName:(id)displayName // NSString*
-           sessionMode:(i32)sessionMode {
+- (id)initWithSessionID:(id)_sessionID // NSString*
+           displayName:(id)_displayName // NSString*
+           sessionMode:(i32)_sessionMode {
     this
 }
 
@@ -23,14 +23,14 @@ pub const CLASSES: ClassExports = objc_classes! {
     false
 }
 
-- (())setAvailable:(bool)available {
+- (())setAvailable:(bool)_available {
 }
 
 - (id)delegate {
     nil
 }
 
-- (())setDelegate:(id)delegate {
+- (())setDelegate:(id)_delegate {
 }
 
 @end
