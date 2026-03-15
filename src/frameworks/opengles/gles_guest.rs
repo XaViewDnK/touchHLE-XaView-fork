@@ -139,8 +139,11 @@ fn panic_on_gl_errors(gles: &mut dyn GLES) {
 // Generic state manipulation
 fn glGetError(env: &mut Environment) -> GLenum {
     let ignore_gl_errors = env.options.ignore_gl_errors;
+    let is_gles2 = env.options.gles_version == 2;
+    // BypassErrorsEsTwo
     with_ctx_and_mem(env, |gles, _mem| {
         let err = unsafe { gles.GetError() };
+        if is_gles2 { return 0; }
         if err != 0 {
             if ignore_gl_errors {
                 log_once!(
@@ -303,7 +306,12 @@ fn glGetString(env: &mut Environment, name: GLenum) -> ConstPtr<GLubyte> {
                             b"OpenGL ES GLSL ES 1.00" // GlslVersion
                         }
                         gles11::EXTENSIONS => {
-                            b"GL_APPLE_framebuffer_multisample GL_APPLE_texture_max_level GL_EXT_discard_framebuffer GL_EXT_texture_filter_anisotropic GL_EXT_texture_lod_bias GL_IMG_read_format GL_IMG_texture_compression_pvrtc GL_IMG_texture_format_BGRA8888 GL_OES_blend_subtract GL_OES_compressed_paletted_texture GL_OES_depth24 GL_OES_draw_texture GL_OES_framebuffer_object GL_OES_mapbuffer GL_OES_matrix_palette GL_OES_point_size_array GL_OES_point_sprite GL_OES_read_format GL_OES_rgb8_rgba8 GL_OES_texture_mirrored_repeat GL_OES_vertex_array_object "
+                            // SafeExtensionsEsTwo
+                            if is_es2 {
+                                b"GL_APPLE_framebuffer_multisample GL_APPLE_texture_max_level GL_EXT_discard_framebuffer GL_IMG_read_format GL_IMG_texture_compression_pvrtc GL_IMG_texture_format_BGRA8888 GL_OES_depth24 GL_OES_element_index_uint GL_OES_framebuffer_object GL_OES_packed_depth_stencil GL_OES_rgb8_rgba8 GL_OES_texture_mirrored_repeat GL_OES_vertex_half_float "
+                            } else {
+                                b"GL_APPLE_framebuffer_multisample GL_APPLE_texture_max_level GL_EXT_discard_framebuffer GL_EXT_texture_filter_anisotropic GL_EXT_texture_lod_bias GL_IMG_read_format GL_IMG_texture_compression_pvrtc GL_IMG_texture_format_BGRA8888 GL_OES_blend_subtract GL_OES_compressed_paletted_texture GL_OES_depth24 GL_OES_draw_texture GL_OES_framebuffer_object GL_OES_mapbuffer GL_OES_matrix_palette GL_OES_point_size_array GL_OES_point_sprite GL_OES_read_format GL_OES_rgb8_rgba8 GL_OES_texture_mirrored_repeat GL_OES_vertex_array_object "
+                            }
                         }
                         _ => unreachable!(),
                     };
@@ -982,31 +990,66 @@ fn glBindTexture(env: &mut Environment, target: GLenum, texture: GLuint) {
     })
 }
 fn glTexParameteri(env: &mut Environment, target: GLenum, pname: GLenum, param: GLint) {
-    // So long as we haven't implemented glDrawTexOES yet, we can just ignore
-    // this parameter, because it doesn't do anything for normal texture use.
     if pname == gles11::TEXTURE_CROP_RECT_OES {
         return;
     }
+    // StripAppleEnums
+    if env.options.gles_version == 2 && (pname == 0x813D || pname == 0x8191) {
+        return;
+    }
+    let mut p = param;
+    if env.options.gles_version == 2 && pname == gles11::TEXTURE_MIN_FILTER {
+        if p == gles11::NEAREST_MIPMAP_NEAREST as GLint || p == gles11::NEAREST_MIPMAP_LINEAR as GLint {
+            p = gles11::NEAREST as GLint;
+        }
+        if p == gles11::LINEAR_MIPMAP_NEAREST as GLint || p == gles11::LINEAR_MIPMAP_LINEAR as GLint {
+            p = gles11::LINEAR as GLint;
+        }
+    }
     with_ctx_and_mem(env, |gles, _mem| unsafe {
-        gles.TexParameteri(target, pname, param)
+        gles.TexParameteri(target, pname, p)
     })
 }
 fn glTexParameterf(env: &mut Environment, target: GLenum, pname: GLenum, param: GLfloat) {
-    // See above.
     if pname == gles11::TEXTURE_CROP_RECT_OES {
         return;
     }
+    // StripAppleEnums
+    if env.options.gles_version == 2 && (pname == 0x813D || pname == 0x8191) {
+        return;
+    }
+    let mut p = param;
+    if env.options.gles_version == 2 && pname == gles11::TEXTURE_MIN_FILTER {
+        if p == gles11::NEAREST_MIPMAP_NEAREST as GLfloat || p == gles11::NEAREST_MIPMAP_LINEAR as GLfloat {
+            p = gles11::NEAREST as GLfloat;
+        }
+        if p == gles11::LINEAR_MIPMAP_NEAREST as GLfloat || p == gles11::LINEAR_MIPMAP_LINEAR as GLfloat {
+            p = gles11::LINEAR as GLfloat;
+        }
+    }
     with_ctx_and_mem(env, |gles, _mem| unsafe {
-        gles.TexParameterf(target, pname, param)
+        gles.TexParameterf(target, pname, p)
     })
 }
 fn glTexParameterx(env: &mut Environment, target: GLenum, pname: GLenum, param: GLfixed) {
-    // See above.
     if pname == gles11::TEXTURE_CROP_RECT_OES {
         return;
     }
+    // StripAppleEnums Fixed
+    if env.options.gles_version == 2 && (pname == 0x813D || pname == 0x8191) {
+        return;
+    }
+    let mut p = param;
+    if env.options.gles_version == 2 && pname == gles11::TEXTURE_MIN_FILTER {
+        if p == gles11::NEAREST_MIPMAP_NEAREST as GLfixed || p == gles11::NEAREST_MIPMAP_LINEAR as GLfixed {
+            p = gles11::NEAREST as GLfixed;
+        }
+        if p == gles11::LINEAR_MIPMAP_NEAREST as GLfixed || p == gles11::LINEAR_MIPMAP_LINEAR as GLfixed {
+            p = gles11::LINEAR as GLfixed;
+        }
+    }
     with_ctx_and_mem(env, |gles, _mem| unsafe {
-        gles.TexParameterx(target, pname, param)
+        gles.TexParameterx(target, pname, p)
     })
 }
 fn glTexParameteriv(env: &mut Environment, target: GLenum, pname: GLenum, params: ConstPtr<GLint>) {
@@ -1097,7 +1140,7 @@ fn glTexImage2D(
             format,
             type_,
             pixels,
-        )
+        );
     })
 }
 fn glTexSubImage2D(
@@ -1145,7 +1188,7 @@ fn glCompressedTexImage2D(
             border,
             image_size,
             data,
-        )
+        );
     })
 }
 fn glCopyTexImage2D(
@@ -1288,14 +1331,15 @@ fn glRenderbufferStorageOES(
     width: GLsizei,
     height: GLsizei,
 ) {
-    // apply scale hack: give the app a larger framebuffer than it asked for
     let factor = env.options.scale_hack.get() as GLsizei;
     let (width, height) = (width * factor, height * factor);
+    // RestoreCleanDepth
     with_ctx_and_mem(env, |gles, _mem| unsafe {
         gles.RenderbufferStorageOES(target, internalformat, width, height)
     })
 }
 
+// RestoreMsaaFunctions
 fn glRenderbufferStorageMultisampleAPPLE(
     env: &mut Environment,
     target: GLenum,
@@ -1304,12 +1348,10 @@ fn glRenderbufferStorageMultisampleAPPLE(
     width: GLsizei,
     height: GLsizei,
 ) {
-    // MsaaFallbackStub
     glRenderbufferStorageOES(env, target, internalformat, width, height)
 }
 
 fn glResolveMultisampleFramebufferAPPLE(_env: &mut Environment) {
-    // NoopResolveStub
 }
 
 fn glDiscardFramebufferEXT(
@@ -1328,6 +1370,8 @@ fn glFramebufferRenderbufferOES(
     renderbuffertarget: GLenum,
     renderbuffer: GLuint,
 ) {
+    // IgnoreStencilFix
+    if env.options.gles_version == 2 && attachment == 0x8D20 { return; }
     with_ctx_and_mem(env, |gles, _mem| unsafe {
         gles.FramebufferRenderbufferOES(target, attachment, renderbuffertarget, renderbuffer)
     })
@@ -1613,6 +1657,11 @@ fn glShaderSource(
 ) {
     let is_gles2 = env.options.gles_version == 2;
     with_ctx_and_mem(env, |gles, mem| unsafe {
+        let mut shader_type = 0;
+        if is_gles2 {
+            gles.GetShaderiv(shader, 0x8B4F, &mut shader_type);
+        }
+
         let count_usize = count as usize;
         let string_arr = mem.ptr_at(string.cast::<ConstVoidPtr>(), count as u32);
         let length_arr = if length.is_null() { std::ptr::null() } else { mem.ptr_at(length, count as u32) };
@@ -1631,8 +1680,19 @@ fn glShaderSource(
             full_source.push_str(&String::from_utf8_lossy(slice));
         }
 
-        if is_gles2 && full_source.contains("gl_FragColor") && !full_source.contains("precision ") {
-            full_source = format!("precision mediump float;\n{}", full_source);
+        if is_gles2 {
+            // SmartPrecisionInject
+            let mut s = full_source.clone();
+            if !s.contains("precision ") {
+                let inject = "\n#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\n";
+                if let Some(pos) = s.find("#version") {
+                    let nl = s[pos..].find('\n').unwrap_or(0);
+                    s.insert_str(pos + nl + 1, inject);
+                } else {
+                    s.insert_str(0, inject);
+                }
+            }
+            full_source = s;
         }
 
         let c_source = std::ffi::CString::new(full_source.replace("\0", "")).unwrap();
@@ -1712,6 +1772,19 @@ fn glBindAttribLocation(
 fn glLinkProgram(env: &mut Environment, program: GLuint) {
     let is_gles2 = env.options.gles_version == 2;
     with_ctx_and_mem(env, |gles, _mem| unsafe {
+        if is_gles2 {
+            // AppleGameloftAttribs
+            let n0 = [c"position", c"a_position", c"aPosition", c"inPosition", c"rm_Vertex"];
+            for n in n0 { gles.BindAttribLocation(program, 0, n.as_ptr() as _); }
+            let n1 = [c"normal", c"a_normal", c"aNormal", c"inNormal", c"rm_Normal"];
+            for n in n1 { gles.BindAttribLocation(program, 1, n.as_ptr() as _); }
+            let n2 = [c"color", c"a_color", c"aColor", c"inColor", c"rm_Color"];
+            for n in n2 { gles.BindAttribLocation(program, 2, n.as_ptr() as _); }
+            let n3 = [c"texCoord", c"texcoord", c"a_texCoord", c"aTexCoord", c"inTexCoord", c"rm_TexCoord0"];
+            for n in n3 { gles.BindAttribLocation(program, 3, n.as_ptr() as _); }
+            let n4 = [c"texCoord1", c"a_texCoord1", c"aTexCoord1", c"inTexCoord1", c"rm_TexCoord1"];
+            for n in n4 { gles.BindAttribLocation(program, 4, n.as_ptr() as _); }
+        }
         gles.LinkProgram(program);
         if is_gles2 {
             let mut status = 0;
@@ -2080,6 +2153,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(glBindFramebufferOES(_, _)),
     export_c_func!(glBindRenderbufferOES(_, _)),
     export_c_func!(glRenderbufferStorageOES(_, _, _, _)),
+    // RestoreMsaaExports
     export_c_func!(glRenderbufferStorageMultisampleAPPLE(_, _, _, _, _)),
     export_c_func!(glResolveMultisampleFramebufferAPPLE()),
     export_c_func!(glDiscardFramebufferEXT(_, _, _)),

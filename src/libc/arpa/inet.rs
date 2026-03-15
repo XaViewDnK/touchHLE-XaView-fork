@@ -25,11 +25,18 @@ struct in_addr {
 unsafe impl SafeRead for in_addr {}
 
 fn inet_addr(env: &mut Environment, str: ConstPtr<u8>) -> in_addr_t {
-    let inet_addr_str = env.mem.cstr_at_utf8(str).unwrap();
-    let address: Ipv4Addr = inet_addr_str.parse().unwrap();
-    let res = u32::from_le_bytes(address.octets());
-    log_dbg!("inet_addr({:?}) => {}", inet_addr_str, res);
-    res
+    let inet_addr_str = env.mem.cstr_at_utf8(str).unwrap_or("");
+    match inet_addr_str.parse::<Ipv4Addr>() {
+        Ok(address) => {
+            let res = u32::from_le_bytes(address.octets());
+            log_dbg!("inet_addr({:?}) => {}", inet_addr_str, res);
+            res
+        }
+        Err(_) => {
+            log_dbg!("inet_addr({:?}) => INADDR_NONE", inet_addr_str);
+            0xffffffff // INADDR_NONE
+        }
+    }
 }
 
 fn inet_ntop(
@@ -55,15 +62,22 @@ fn inet_ntop(
 
 fn inet_pton(env: &mut Environment, af: i32, src: ConstPtr<u8>, dst: MutVoidPtr) -> i32 {
     assert_eq!(af, AF_INET);
-    let str = env.mem.cstr_at_utf8(src.cast()).unwrap();
+    let str = env.mem.cstr_at_utf8(src.cast()).unwrap_or("");
     log_dbg!("inet_pton '{}'", str);
-    let address: Ipv4Addr = str.parse().unwrap();
-    let addr = in_addr {
-        s_addr: u32::from_le_bytes(address.octets()),
-    };
-    let addr_ptr: MutPtr<in_addr> = dst.cast();
-    env.mem.write(addr_ptr, addr);
-    1 // address was valid, success
+    match str.parse::<Ipv4Addr>() {
+        Ok(address) => {
+            let addr = in_addr {
+                s_addr: u32::from_le_bytes(address.octets()),
+            };
+            let addr_ptr: MutPtr<in_addr> = dst.cast();
+            env.mem.write(addr_ptr, addr);
+            1 // success
+        }
+        Err(_) => {
+            log_dbg!("inet_pton: invalid address");
+            0 // return 0 on invalid network address
+        }
+    }
 }
 
 pub const FUNCTIONS: FunctionExports = &[

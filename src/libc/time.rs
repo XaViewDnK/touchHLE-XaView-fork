@@ -678,6 +678,16 @@ fn strftime(
         format_char_idx += 1;
 
         match specifier {
+            b'Y' => {
+                let year = time_val.tm_year + 1900;
+                let formatted_year = format!("{:04}", year);
+                res.extend_from_slice(formatted_year.as_bytes());
+            }
+            b'y' => {
+                let year = (time_val.tm_year + 1900) % 100;
+                let formatted_year = format!("{:02}", year);
+                res.extend_from_slice(formatted_year.as_bytes());
+            }
             b'm' => {
                 let month = time_val.tm_mon + 1;
                 assert!((1..=12).contains(&month));
@@ -702,11 +712,16 @@ fn strftime(
                 let formatted_minute = format!("{:02}", minute);
                 res.extend_from_slice(formatted_minute.as_bytes());
             }
-            _ => unimplemented!(
-                "Format character '{}'. Formatted up to index {}",
-                specifier as char,
-                format_char_idx
-            ),
+            b'S' => {
+                let second = time_val.tm_sec;
+                assert!((0..=60).contains(&second)); // Up to 60 for leap seconds
+                let formatted_second = format!("{:02}", second);
+                res.extend_from_slice(formatted_second.as_bytes());
+            }
+            _ => {
+                // SkipUnknownFormat
+                log_once!("Warning: strftime unimplemented specifier");
+            }
         }
     }
 

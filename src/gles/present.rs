@@ -124,7 +124,8 @@ pub unsafe fn present_frame(
 
     if is_gles2 {
         let vs_src = "attribute vec4 position;\nattribute vec2 texCoord;\nuniform mat4 texMatrix;\nvarying vec2 v_texCoord;\nvoid main() {\n    gl_Position = position;\n    v_texCoord = (texMatrix * vec4(texCoord, 0.0, 1.0)).xy;\n}\0";
-        let fs_src = "precision mediump float;\nvarying vec2 v_texCoord;\nuniform sampler2D tex;\nuniform vec4 color;\nvoid main() {\n    vec4 texColor = texture2D(tex, v_texCoord);\n    if (texColor.rgb == vec3(0.0)) {\n        gl_FragColor = vec4(0.0, 0.0, 0.4, 1.0);\n    } else {\n        gl_FragColor = vec4(mix(texColor.rgb, color.rgb, color.a) + vec3(0.0, 0.2, 0.0), 1.0);\n    }\n}\0";
+        // RemoveDebugTint
+        let fs_src = "precision mediump float;\nvarying vec2 v_texCoord;\nuniform sampler2D tex;\nuniform vec4 color;\nvoid main() {\n    vec4 texColor = texture2D(tex, v_texCoord);\n    gl_FragColor = vec4(mix(texColor.rgb, color.rgb, color.a), 1.0);\n}\0";
         
         let vs = gles.CreateShader(0x8B31);
         let vs_ptr = [vs_src.as_ptr() as *const std::ffi::c_char];
@@ -141,6 +142,9 @@ pub unsafe fn present_frame(
         let prog = gles.CreateProgram();
         gles.AttachShader(prog, vs);
         gles.AttachShader(prog, fs);
+        // SafeAttribLocation
+        gles.BindAttribLocation(prog, 6, c"position".as_ptr() as *const _);
+        gles.BindAttribLocation(prog, 7, c"texCoord".as_ptr() as *const _);
         gles.LinkProgram(prog);
         
         let pos = gles.GetAttribLocation(prog, c"position".as_ptr() as *const _);
@@ -201,12 +205,13 @@ pub unsafe fn present_frame(
 
         gles.BindBuffer(gles11::ARRAY_BUFFER, old_array_buf as GLuint);
         gles.BindBuffer(gles11::ELEMENT_ARRAY_BUFFER, old_elem_buf as GLuint);
-        if old_cull != 0 { gles.Enable(gles11::CULL_FACE); }
-        if old_depth != 0 { gles.Enable(gles11::DEPTH_TEST); }
-        if old_scissor != 0 { gles.Enable(gles11::SCISSOR_TEST); }
-        if old_blend != 0 { gles.Enable(gles11::BLEND); }
-        if old_stencil != 0 { gles.Enable(gles11::STENCIL_TEST); }
-        if old_dither != 0 { gles.Enable(gles11::DITHER); }
+        // StateRestoreFix
+        if old_cull != 0 { gles.Enable(gles11::CULL_FACE); } else { gles.Disable(gles11::CULL_FACE); }
+        if old_depth != 0 { gles.Enable(gles11::DEPTH_TEST); } else { gles.Disable(gles11::DEPTH_TEST); }
+        if old_scissor != 0 { gles.Enable(gles11::SCISSOR_TEST); } else { gles.Disable(gles11::SCISSOR_TEST); }
+        if old_blend != 0 { gles.Enable(gles11::BLEND); } else { gles.Disable(gles11::BLEND); }
+        if old_stencil != 0 { gles.Enable(gles11::STENCIL_TEST); } else { gles.Disable(gles11::STENCIL_TEST); }
+        if old_dither != 0 { gles.Enable(gles11::DITHER); } else { gles.Disable(gles11::DITHER); }
         gles.ColorMask(old_color_mask[0], old_color_mask[1], old_color_mask[2], old_color_mask[3]);
         gles.DepthMask(old_depth_mask);
         for i in 0..8 {

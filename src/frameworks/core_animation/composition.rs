@@ -348,6 +348,9 @@ pub fn recomposite_if_necessary(env: &mut Environment, force: bool) -> Option<In
                     let prog = gles.CreateProgram();
                     gles.AttachShader(prog, vs);
                     gles.AttachShader(prog, fs);
+                    // SafeAttribsCompFix
+                    gles.BindAttribLocation(prog, 6, c"position".as_ptr() as *const _);
+                    gles.BindAttribLocation(prog, 7, c"texCoord".as_ptr() as *const _);
                     gles.LinkProgram(prog);
                     prog
                 }

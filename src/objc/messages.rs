@@ -139,6 +139,11 @@ Type mismatch when sending message {} to {:?}!
             is_metaclass,
         }) = host_object.as_any().downcast_ref()
         {
+            // BypassGKSession
+            if name == "GKSession" {
+                env.cpu.regs_mut()[0..2].fill(0);
+                return;
+            }
             panic!(
                 "Class \"{}\" ({:?}) is unimplemented. Call to {} method \"{}\".",
                 name,
