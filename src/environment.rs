@@ -1031,6 +1031,9 @@ impl Environment {
         }
 
         if self.gdb_server.is_none() {
+            // DumpCpuBeforePanic
+            self.dump_all_regs();
+            self.stack_trace_current();
             panic!("Error during CPU execution: {error:?}");
         }
 

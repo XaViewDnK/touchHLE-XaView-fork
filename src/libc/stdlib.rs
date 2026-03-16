@@ -503,7 +503,29 @@ fn div(_env: &mut Environment, numer: i32, denom: i32) -> u64 {
     (quot as u32 as u64) | ((rem as u32 as u64) << 32)
 }
 
+fn _Block_copy(_env: &mut Environment, block: ConstVoidPtr) -> ConstVoidPtr {
+    // FixBlockCopyName
+    block
+}
+
+fn _Block_release(_env: &mut Environment, _block: ConstVoidPtr) {
+    // FixBlockReleaseName
+}
+
+fn dispatch_once(env: &mut Environment, predicate: MutPtr<i32>, block: ConstVoidPtr) {
+    // RunDispatchOnceBlock
+    if env.mem.read(predicate) == 0 {
+        env.mem.write(predicate, -1);
+        let func_addr: u32 = env.mem.read((block.cast::<u8>() + 12).cast());
+        let func = GuestFunction::from_addr_with_thumb_bit(func_addr);
+        let _: u32 = func.call_from_host(env, (block,));
+    }
+}
+
 pub const FUNCTIONS: FunctionExports = &[
+    export_c_func!(_Block_copy(_)),
+    export_c_func!(_Block_release(_)),
+    export_c_func!(dispatch_once(_, _)),
     export_c_func!(malloc(_)),
     export_c_func!(malloc_size(_)),
     export_c_func!(calloc(_, _)),

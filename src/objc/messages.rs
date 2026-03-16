@@ -47,7 +47,11 @@ fn objc_msgSend_inner(
     }
 
     let orig_class = super2.unwrap_or_else(|| ObjC::read_isa(receiver, &env.mem));
-    assert!(orig_class != nil);
+    if orig_class == nil {
+        // BypassNilClassAssert
+        env.cpu.regs_mut()[0..2].fill(0);
+        return;
+    }
 
     // Traverse the chain of superclasses to find the method implementation.
 

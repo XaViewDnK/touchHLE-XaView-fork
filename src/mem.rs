@@ -310,7 +310,7 @@ impl Mem {
         assert!(new_null_segment_size.is_multiple_of(0x1000));
         self.allocator
             .reserve(allocator::Chunk::new(0, new_null_segment_size));
-        self.null_segment_size = new_null_segment_size;
+        // BypassNullPage
     }
 
     pub fn null_segment_size(&self) -> VAddr {
