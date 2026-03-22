@@ -9,7 +9,7 @@ use crate::abi::{CallFromHost, GuestFunction};
 use crate::dyld::{export_c_func, export_c_func_aliased, FunctionExports};
 use crate::fs::{resolve_path, GuestPath};
 use crate::libc::clocale::{setlocale, LC_CTYPE};
-use crate::libc::errno::set_errno;
+use crate::libc::errno::{set_errno, EINVAL};
 use crate::libc::string::strlen;
 use crate::libc::wchar::wchar_t;
 use crate::mem::{ConstPtr, ConstVoidPtr, GuestUSize, MutPtr, MutVoidPtr, Ptr};
@@ -256,6 +256,18 @@ fn setenv(env: &mut Environment, name: ConstPtr<u8>, value: ConstPtr<u8>, overwr
         std::str::from_utf8(name_cstr),
     );
     0 // success
+}
+fn unsetenv(env: &mut Environment, name: ConstPtr<u8>) -> i32 {
+    // TODO: handle errno properly
+    set_errno(env, 0);
+
+    let name_cstr = env.mem.cstr_at(name);
+    if !env.env_vars.contains_key(name_cstr) {
+        set_errno(env, EINVAL);
+        -1
+    } else {
+        todo!()
+    }
 }
 
 fn exit(env: &mut Environment, exit_code: i32) {
@@ -512,6 +524,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(arc4random()),
     export_c_func!(getenv(_)),
     export_c_func!(setenv(_, _, _)),
+    export_c_func!(unsetenv(_)),
     export_c_func!(exit(_)),
     export_c_func!(bsearch(_, _, _, _, _)),
     export_c_func!(strtof(_, _)),

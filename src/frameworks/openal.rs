@@ -203,7 +203,7 @@ fn alcCreateContext(
 
     let res = unsafe {
         OpenALContext::new_with_device_and_attrlist(
-            &mut env.openal_manager,
+            env.openal_manager.as_mut(),
             host_device,
             attr_list_ptr,
         )
@@ -355,6 +355,13 @@ fn alGetBufferi(env: &mut Environment, buffer: ALuint, param: ALenum, value: Mut
 fn alIsSource(env: &mut Environment, source: ALuint) -> ALboolean {
     try_get_context!(env, context, 0);
     unsafe { context.IsSource(source) }
+}
+
+fn alIsExtensionPresent(env: &mut Environment, ext_name: ConstPtr<u8>) -> ALboolean {
+    try_get_context!(env, context, 0);
+    let s = env.mem.cstr_at_utf8(ext_name).unwrap();
+    let ss = CString::new(s).unwrap();
+    unsafe { context.IsExtensionPresent(ss.as_ptr()) }
 }
 
 fn alEnable(env: &mut Environment, capability: ALenum) {
@@ -818,9 +825,6 @@ fn alGetIntegerv(_env: &mut Environment, _param: ALenum, _values: MutPtr<ALint>)
 }
 fn alGetProcAddress(env: &mut Environment, funcName: ConstPtr<u8>) -> MutVoidPtr {
     alcGetProcAddress(env, Ptr::null(), funcName)
-}
-fn alIsExtensionPresent(_env: &mut Environment, _extName: ConstPtr<u8>) -> ALboolean {
-    todo!();
 }
 fn alIsEnabled(_env: &mut Environment, _capability: ALenum) -> ALboolean {
     todo!();

@@ -126,6 +126,9 @@ impl OpenAL<'_> {
     pub unsafe fn IsSource(&self, source: ALuint) -> ALboolean {
         al_sys::alIsSource(source)
     }
+    pub unsafe fn IsExtensionPresent(&self, extName: *const ALchar) -> ALboolean {
+        al_sys::alIsExtensionPresent(extName)
+    }
 
     pub unsafe fn Enable(&self, capability: ALenum) {
         al_sys::alEnable(capability)

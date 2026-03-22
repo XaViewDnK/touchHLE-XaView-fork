@@ -137,6 +137,7 @@ extern "C" {
 
     pub fn alIsBuffer(buffer: ALuint) -> ALboolean;
     pub fn alIsSource(source: ALuint) -> ALboolean;
+    pub fn alIsExtensionPresent(extName: *const ALchar) -> ALboolean;
 
     pub fn alEnable(capability: ALenum);
 

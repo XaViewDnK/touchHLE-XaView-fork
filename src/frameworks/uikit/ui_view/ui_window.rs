@@ -112,6 +112,10 @@ pub const CLASSES: ClassExports = objc_classes! {
     () = msg![env; center postNotificationName:notif_name object:this userInfo:nil];
 }
 
+- (bool)isKeyWindow {
+    env.framework_state.uikit.ui_view.ui_window.key_window == Some(this)
+}
+
 - (())makeKeyAndVisible {
     // TODO: We don't currently have send any non-touch events to windows,
     // so there's no meaning in it yet.
