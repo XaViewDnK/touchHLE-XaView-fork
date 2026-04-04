@@ -807,8 +807,8 @@ fn AudioFileStreamParseBytes(
     _in_data: ConstVoidPtr,
     _in_flags: u32,
 ) -> i32 {
-    // FakeStreamParseBytes
-    0
+    // FailStreamParseBytes
+    -50
 }
 
 fn AudioFileStreamGetProperty(
@@ -818,8 +818,8 @@ fn AudioFileStreamGetProperty(
     _io_property_data_size: MutPtr<u32>,
     _out_property_data: MutVoidPtr,
 ) -> i32 {
-    // FakeStreamGetProperty
-    0
+    // FailStreamGetProperty
+    -50
 }
 
 fn AudioFileStreamClose(_env: &mut Environment, _in_audio_file_stream: MutVoidPtr) -> i32 {
