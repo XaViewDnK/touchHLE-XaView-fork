@@ -800,37 +800,7 @@ fn gethostbyname(env: &mut Environment, name: ConstPtr<u8>) -> MutVoidPtr {
     crate::mem::Ptr::null()
 }
 
-fn AudioFileStreamParseBytes(
-    _env: &mut Environment,
-    _in_audio_file_stream: MutVoidPtr,
-    _in_data_byte_size: u32,
-    _in_data: ConstVoidPtr,
-    _in_flags: u32,
-) -> i32 {
-    // FailStreamParseBytes
-    -50
-}
-
-fn AudioFileStreamGetProperty(
-    _env: &mut Environment,
-    _in_audio_file_stream: MutVoidPtr,
-    _in_property_id: u32,
-    _io_property_data_size: MutPtr<u32>,
-    _out_property_data: MutVoidPtr,
-) -> i32 {
-    // FailStreamGetProperty
-    -50
-}
-
-fn AudioFileStreamClose(_env: &mut Environment, _in_audio_file_stream: MutVoidPtr) -> i32 {
-    // FakeStreamClose
-    0
-}
-
 pub const FUNCTIONS: FunctionExports = &[
-    export_c_func!(AudioFileStreamParseBytes(_, _, _, _)),
-    export_c_func!(AudioFileStreamGetProperty(_, _, _, _)),
-    export_c_func!(AudioFileStreamClose(_)),
     export_c_func!(gethostbyname(_)),
     export_c_func!(class_respondsToSelector(_, _)),
     export_c_func!(__cxa_guard_acquire(_)),
