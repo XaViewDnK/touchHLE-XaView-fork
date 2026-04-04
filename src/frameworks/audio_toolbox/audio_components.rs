@@ -21,7 +21,9 @@ use crate::frameworks::core_audio_types::{
 use crate::mem::{ConstPtr, ConstVoidPtr, MutPtr, SafeRead};
 
 const kAudioUnitType_Output: u32 = fourcc(b"auou");
+#[allow(dead_code)]
 const kAudioUnitSubType_RemoteIO: u32 = fourcc(b"rioc");
+#[allow(dead_code)]
 const kAudioUnitManufacturer_Apple: u32 = fourcc(b"appl");
 
 #[derive(Default)]
