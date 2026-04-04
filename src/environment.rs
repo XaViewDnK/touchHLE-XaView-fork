@@ -1603,9 +1603,12 @@ impl Environment {
                         let r12 = self.cpu.regs()[12];
                         echo!("WARNING: Bypassing bad jump to {:#010x}. LR: {:#010x}, R12: {:#x}", pc, lr, r12);
                         
-                        // BreakCrashLoop
-                        if lr == 0x00ab4361 || lr == 0x004d3d4d {
-                            let fp0 = self.cpu.regs()[7];
+                        // SafeUnwind BadJump
+                        let fp0 = self.cpu.regs()[7];
+                        if fp0 > 0x1000 {
+                            self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(12)));
+                            self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(8)));
+                            self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(4)));
                             let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
                             let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
                             self.cpu.regs_mut()[7] = prev_fp;
@@ -1615,6 +1618,7 @@ impl Environment {
                             return ThreadNextAction::Continue;
                         }
 
+                        self.cpu.regs_mut()[0] = 0;
                         self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(lr));
                         return ThreadNextAction::Continue;
                     }
@@ -1676,8 +1680,13 @@ impl Environment {
                     let fp2: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
                     let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2 + 4));
                     echo!("Recovered Deep Return Address: {:#010x}", target_lr);
-                    self.cpu.regs_mut()[7] = fp2; 
-                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp1 + 8; 
+                    // SafeUnwind DRM
+                    self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2.wrapping_sub(12)));
+                    self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2.wrapping_sub(8)));
+                    self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2.wrapping_sub(4)));
+                    let prev_fp = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2));
+                    self.cpu.regs_mut()[7] = prev_fp; 
+                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp2 + 8; 
                     self.cpu.regs_mut()[0] = 0; 
                     self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
                 }
@@ -1686,8 +1695,12 @@ impl Environment {
                 if (pc == 0x00c3296c || pc == 0x00c32bfc) && self.current_thread != 0 {
                     echo!("WARNING: Safely unwinding background hang at {:#010x}! Thread: {}", pc, self.current_thread);
                     let fp0 = self.cpu.regs()[7];
-                    let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
                     let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
+                    // SafeUnwind Hang
+                    self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(12)));
+                    self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(8)));
+                    self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(4)));
+                    let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
                     self.cpu.regs_mut()[7] = prev_fp;
                     self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
                     self.cpu.regs_mut()[0] = 0;
@@ -1705,8 +1718,12 @@ impl Environment {
                         echo!("WARNING: Deep unwinding network parser loop at {:#010x}! Thread: {}", pc, self.current_thread);
                         let fp0 = self.cpu.regs()[7];
                         let fp1: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
-                        let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
                         let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1 + 4));
+                        // SafeUnwind Parser
+                        self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1.wrapping_sub(12)));
+                        self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1.wrapping_sub(8)));
+                        self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1.wrapping_sub(4)));
+                        let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
                         self.cpu.regs_mut()[7] = prev_fp;
                         self.cpu.regs_mut()[cpu::Cpu::SP] = fp1 + 8;
                         self.cpu.regs_mut()[0] = 0;
