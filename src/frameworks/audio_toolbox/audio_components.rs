@@ -154,6 +154,10 @@ fn AudioComponentInstanceNew(
     in_component: AudioComponent,
     out_instance: MutPtr<AudioComponentInstance>,
 ) -> OSStatus {
+    // FailComponentNew
+    if in_component.is_null() {
+        return paramErr;
+    }
     let host_object = AudioComponentInstanceHostObject::default();
 
     let guest_instance: AudioComponentInstance = env

@@ -496,11 +496,11 @@ fn AudioFileStreamOpen(
     _in_file_type_hint: AudioFileTypeID,
     out_audio_file_stream: MutPtr<MutVoidPtr>,
 ) -> OSStatus {
-    // FakeAudioStreamOpen
+    // FailAudioStreamOpen
     if !out_audio_file_stream.is_null() {
-        env.mem.write(out_audio_file_stream, crate::mem::Ptr::from_bits(0x12345678));
+        env.mem.write(out_audio_file_stream, crate::mem::Ptr::null());
     }
-    0
+    -50 // paramErr
 }
 
 pub const FUNCTIONS: FunctionExports = &[
