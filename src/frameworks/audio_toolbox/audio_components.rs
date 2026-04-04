@@ -122,12 +122,14 @@ fn AudioComponentFindNext(
     in_component: AudioComponent,
     in_desc: ConstPtr<AudioComponentDescription>,
 ) -> AudioComponent {
-    assert!(in_component.is_null());
-
+    // FakeComponentFindNext
+    if !in_component.is_null() {
+        return crate::mem::Ptr::null();
+    }
     let audio_comp_descr = env.mem.read(in_desc);
-    assert!(audio_comp_descr.component_type == kAudioUnitType_Output);
-    assert!(audio_comp_descr.component_sub_type == kAudioUnitSubType_RemoteIO);
-    assert!(audio_comp_descr.component_manufacturer == kAudioUnitManufacturer_Apple);
+    if audio_comp_descr.component_type != kAudioUnitType_Output {
+        return crate::mem::Ptr::null();
+    }
 
     let state = State::get(&mut env.framework_state);
     if state.audio_component.is_null() {
