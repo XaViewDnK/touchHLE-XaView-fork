@@ -828,9 +828,9 @@ fn AudioFileStreamClose(_env: &mut Environment, _in_audio_file_stream: MutVoidPt
 }
 
 pub const FUNCTIONS: FunctionExports = &[
-    export_c_func!(AudioFileStreamParseBytes(_, _, _, _, _)),
-    export_c_func!(AudioFileStreamGetProperty(_, _, _, _, _)),
-    export_c_func!(AudioFileStreamClose(_, _)),
+    export_c_func!(AudioFileStreamParseBytes(_, _, _, _)),
+    export_c_func!(AudioFileStreamGetProperty(_, _, _, _)),
+    export_c_func!(AudioFileStreamClose(_)),
     export_c_func!(gethostbyname(_)),
     export_c_func!(class_respondsToSelector(_, _)),
     export_c_func!(__cxa_guard_acquire(_)),
