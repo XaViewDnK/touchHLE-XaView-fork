@@ -1602,23 +1602,6 @@ impl Environment {
                         let lr = self.cpu.regs()[cpu::Cpu::LR];
                         let r12 = self.cpu.regs()[12];
                         echo!("WARNING: Bypassing bad jump to {:#010x}. LR: {:#010x}, R12: {:#x}", pc, lr, r12);
-                        
-                        // SafeUnwind BadJump
-                        let fp0 = self.cpu.regs()[7];
-                        if fp0 > 0x1000 {
-                            self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(12)));
-                            self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(8)));
-                            self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(4)));
-                            let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
-                            let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
-                            self.cpu.regs_mut()[7] = prev_fp;
-                            self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
-                            self.cpu.regs_mut()[0] = 0;
-                            self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
-                            return ThreadNextAction::Continue;
-                        }
-
-                        self.cpu.regs_mut()[0] = 0;
                         self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(lr));
                         return ThreadNextAction::Continue;
                     }
@@ -1680,50 +1663,34 @@ impl Environment {
                     let fp2: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
                     let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2 + 4));
                     echo!("Recovered Deep Return Address: {:#010x}", target_lr);
-                    // SafeUnwind DRM
-                    self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2.wrapping_sub(12)));
-                    self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2.wrapping_sub(8)));
-                    self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2.wrapping_sub(4)));
-                    let prev_fp = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp2));
-                    self.cpu.regs_mut()[7] = prev_fp; 
-                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp2 + 8; 
+                    self.cpu.regs_mut()[7] = fp2; 
+                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp1 + 8; 
                     self.cpu.regs_mut()[0] = 0; 
                     self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
                 }
 
                 // BypassBackgroundHangs
                 if (pc == 0x00c3296c || pc == 0x00c32bfc) && self.current_thread != 0 {
-                    echo!("WARNING: Safely unwinding background hang at {:#010x}! Thread: {}", pc, self.current_thread);
-                    let fp0 = self.cpu.regs()[7];
-                    let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
-                    // SafeUnwind Hang
-                    self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(12)));
-                    self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(8)));
-                    self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0.wrapping_sub(4)));
-                    let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
-                    self.cpu.regs_mut()[7] = prev_fp;
-                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
-                    self.cpu.regs_mut()[0] = 0;
-                    self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
+                    let lr = self.cpu.regs()[cpu::Cpu::LR];
+                    if lr == 0x005b991b || lr == 0x00a16403 || lr == 0x00838378 || lr == 0x00a54467 || lr == 0x0090665c {
+                        echo!("WARNING: Safely unwinding background hang at {:#010x}! Thread: {}", pc, self.current_thread);
+                        let fp0 = self.cpu.regs()[7];
+                        let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
+                        let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
+                        self.cpu.regs_mut()[7] = prev_fp;
+                        self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
+                        self.cpu.regs_mut()[0] = 0;
+                        self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
+                    }
                 } else if (pc == 0x00c3375c || pc == 0x00c3376c) && self.current_thread != 0 {
                     // DeepParserUnwind
-                    let r0 = self.cpu.regs()[0];
-                    let mut is_network = false;
-                    if let Ok(s) = self.mem.cstr_at_utf8(crate::mem::ConstPtr::<u8>::from_bits(r0)) {
-                        if s.starts_with("XTUM") || s.starts_with("A gateway") || s.starts_with("dealloc") {
-                            is_network = true;
-                        }
-                    }
-                    if is_network {
+                    let lr = self.cpu.regs()[cpu::Cpu::LR];
+                    if lr == 0x005b991b || lr == 0x00a16403 || lr == 0x00838378 || lr == 0x00a54467 || lr == 0x0090665c {
                         echo!("WARNING: Deep unwinding network parser loop at {:#010x}! Thread: {}", pc, self.current_thread);
                         let fp0 = self.cpu.regs()[7];
                         let fp1: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
-                        let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1 + 4));
-                        // SafeUnwind Parser
-                        self.cpu.regs_mut()[4] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1.wrapping_sub(12)));
-                        self.cpu.regs_mut()[5] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1.wrapping_sub(8)));
-                        self.cpu.regs_mut()[6] = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1.wrapping_sub(4)));
                         let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
+                        let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1 + 4));
                         self.cpu.regs_mut()[7] = prev_fp;
                         self.cpu.regs_mut()[cpu::Cpu::SP] = fp1 + 8;
                         self.cpu.regs_mut()[0] = 0;
