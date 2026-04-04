@@ -489,18 +489,15 @@ pub fn AudioFileClose(env: &mut Environment, in_audio_file: AudioFileID) -> OSSt
 }
 
 fn AudioFileStreamOpen(
-    env: &mut Environment,
+    _env: &mut Environment,
     _in_client_data: MutVoidPtr,
     _in_property_listener_proc: MutVoidPtr,
     _in_packets_proc: MutVoidPtr,
     _in_file_type_hint: AudioFileTypeID,
-    out_audio_file_stream: MutPtr<MutVoidPtr>,
+    _out_audio_file_stream: MutVoidPtr,
 ) -> OSStatus {
-    // FailAudioStreamOpen
-    if !out_audio_file_stream.is_null() {
-        env.mem.write(out_audio_file_stream, crate::mem::Ptr::null());
-    }
-    -50 // paramErr
+    log!("TODO: AudioFileStreamOpen(), returning kAudioFileUnspecifiedError!");
+    kAudioFileUnspecifiedError
 }
 
 pub const FUNCTIONS: FunctionExports = &[

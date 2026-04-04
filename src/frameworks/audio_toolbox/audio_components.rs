@@ -21,9 +21,7 @@ use crate::frameworks::core_audio_types::{
 use crate::mem::{ConstPtr, ConstVoidPtr, MutPtr, SafeRead};
 
 const kAudioUnitType_Output: u32 = fourcc(b"auou");
-#[allow(dead_code)]
 const kAudioUnitSubType_RemoteIO: u32 = fourcc(b"rioc");
-#[allow(dead_code)]
 const kAudioUnitManufacturer_Apple: u32 = fourcc(b"appl");
 
 #[derive(Default)]
@@ -124,14 +122,12 @@ fn AudioComponentFindNext(
     in_component: AudioComponent,
     in_desc: ConstPtr<AudioComponentDescription>,
 ) -> AudioComponent {
-    // FakeComponentFindNext
-    if !in_component.is_null() {
-        return crate::mem::Ptr::null();
-    }
+    assert!(in_component.is_null());
+
     let audio_comp_descr = env.mem.read(in_desc);
-    if audio_comp_descr.component_type != kAudioUnitType_Output {
-        return crate::mem::Ptr::null();
-    }
+    assert!(audio_comp_descr.component_type == kAudioUnitType_Output);
+    assert!(audio_comp_descr.component_sub_type == kAudioUnitSubType_RemoteIO);
+    assert!(audio_comp_descr.component_manufacturer == kAudioUnitManufacturer_Apple);
 
     let state = State::get(&mut env.framework_state);
     if state.audio_component.is_null() {
@@ -154,10 +150,6 @@ fn AudioComponentInstanceNew(
     in_component: AudioComponent,
     out_instance: MutPtr<AudioComponentInstance>,
 ) -> OSStatus {
-    // FailComponentNew
-    if in_component.is_null() {
-        return paramErr;
-    }
     let host_object = AudioComponentInstanceHostObject::default();
 
     let guest_instance: AudioComponentInstance = env

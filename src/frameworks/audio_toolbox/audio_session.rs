@@ -92,8 +92,13 @@ fn AudioSessionGetProperty(
     io_data_size: MutPtr<u32>,
     out_data: MutVoidPtr,
 ) -> OSStatus {
+    let required_size = get_audio_session_property_size(in_ID);
     let io_data_size_value = env.mem.read(io_data_size);
-    // BypassSizeCheck
+    if io_data_size_value != required_size {
+        log!("Warning: AudioSessionGetProperty() failed");
+        return kAudioSessionBadPropertySizeError;
+    }
+
     let state = &env.framework_state.audio_toolbox.audio_session;
     match in_ID {
         kAudioSessionProperty_OtherAudioIsPlaying => {
@@ -125,11 +130,7 @@ fn AudioSessionGetProperty(
             let value: u32 = 0;
             env.mem.write(out_data.cast(), value);
         }
-        _ => {
-            // BypassUnknownProperty
-            log!("Warning: Unknown AudioSessionGetProperty");
-            return kAudioSessionBadPropertySizeError;
-        }
+        _ => unreachable!(),
     }
 
     let result = 0; // success
@@ -151,13 +152,28 @@ fn AudioSessionSetProperty(
     in_data_size: u32,
     in_data: ConstVoidPtr,
 ) -> OSStatus {
-    // BypassPropertySet
+    let required_size: GuestUSize = match in_ID {
+        kAudioSessionProperty_AudioCategory => guest_size_of::<u32>(),
+        kAudioSessionProperty_PreferredHardwareIOBufferDuration => guest_size_of::<f32>(),
+        kAudioSessionProperty_PreferredHardwareSampleRate => guest_size_of::<f64>(),
+        _ => unimplemented!("Unimplemented property ID: {}", debug_fourcc(in_ID)),
+    };
+    if in_data_size != required_size {
+        log!("Warning: AudioSessionSetProperty() failed");
+        return kAudioSessionBadPropertySizeError;
+    }
     if in_ID == kAudioSessionProperty_PreferredHardwareSampleRate {
-        env.framework_state.audio_toolbox.audio_session.current_hardware_sample_rate = env.mem.read(in_data.cast::<f64>());
-    } else if in_ID == kAudioSessionProperty_AudioCategory {
-        env.framework_state.audio_toolbox.audio_session.audio_session_category = env.mem.read(in_data.cast::<u32>());
-    } else if in_ID == kAudioSessionProperty_PreferredHardwareIOBufferDuration {
-        env.framework_state.audio_toolbox.audio_session.current_hardware_io_buffer_duration = env.mem.read(in_data.cast::<f32>());
+        env.framework_state
+            .audio_toolbox
+            .audio_session
+            .current_hardware_sample_rate = env.mem.read(in_data.cast::<f64>());
+        log!(
+            "AudioSessionSetProperty current_hardware_sample_rate {}",
+            env.framework_state
+                .audio_toolbox
+                .audio_session
+                .current_hardware_sample_rate
+        );
     }
 
     let result = 0; // success
