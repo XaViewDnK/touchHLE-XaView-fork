@@ -1602,6 +1602,19 @@ impl Environment {
                         let lr = self.cpu.regs()[cpu::Cpu::LR];
                         let r12 = self.cpu.regs()[12];
                         echo!("WARNING: Bypassing bad jump to {:#010x}. LR: {:#010x}, R12: {:#x}", pc, lr, r12);
+                        
+                        // BreakCrashLoop
+                        if lr == 0x00ab4361 || lr == 0x004d3d4d {
+                            let fp0 = self.cpu.regs()[7];
+                            let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
+                            let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
+                            self.cpu.regs_mut()[7] = prev_fp;
+                            self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
+                            self.cpu.regs_mut()[0] = 0;
+                            self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
+                            return ThreadNextAction::Continue;
+                        }
+
                         self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(lr));
                         return ThreadNextAction::Continue;
                     }
@@ -1671,30 +1684,25 @@ impl Environment {
 
                 // BypassBackgroundHangs
                 if (pc == 0x00c3296c || pc == 0x00c32bfc) && self.current_thread != 0 {
-                    let lr = self.cpu.regs()[cpu::Cpu::LR];
-                    if lr == 0x005b991b || lr == 0x00a16403 {
-                        echo!("WARNING: Safely unwinding background hang at {:#010x}! Thread: {}", pc, self.current_thread);
-                        let fp0 = self.cpu.regs()[7];
-                        let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
-                        let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
-                        self.cpu.regs_mut()[7] = prev_fp;
-                        self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
-                        self.cpu.regs_mut()[0] = 0;
-                        self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
-                    }
+                    echo!("WARNING: Safely unwinding background hang at {:#010x}! Thread: {}", pc, self.current_thread);
+                    let fp0 = self.cpu.regs()[7];
+                    let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
+                    let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
+                    self.cpu.regs_mut()[7] = prev_fp;
+                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
+                    self.cpu.regs_mut()[0] = 0;
+                    self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
                 } else if (pc == 0x00c3375c || pc == 0x00c3376c) && self.current_thread != 0 {
                     // DeepParserUnwind
-                    let lr = self.cpu.regs()[cpu::Cpu::LR];
-                    if lr == 0x005b991b || lr == 0x00a16403 {
-                        let r0 = self.cpu.regs()[0];
-                        let r1 = self.cpu.regs()[1];
-                        if let Ok(s) = self.mem.cstr_at_utf8(crate::mem::ConstPtr::<u8>::from_bits(r0)) {
-                            echo!("Parser string arg R0: {}", s);
+                    let r0 = self.cpu.regs()[0];
+                    let mut is_network = false;
+                    if let Ok(s) = self.mem.cstr_at_utf8(crate::mem::ConstPtr::<u8>::from_bits(r0)) {
+                        if s.starts_with("XTUM") || s.starts_with("A gateway") || s.starts_with("dealloc") {
+                            is_network = true;
                         }
-                        if let Ok(s) = self.mem.cstr_at_utf8(crate::mem::ConstPtr::<u8>::from_bits(r1)) {
-                            echo!("Parser string arg R1: {}", s);
-                        }
-                        echo!("WARNING: Deep unwinding infinite parser loop at {:#010x}! Thread: {}", pc, self.current_thread);
+                    }
+                    if is_network {
+                        echo!("WARNING: Deep unwinding network parser loop at {:#010x}! Thread: {}", pc, self.current_thread);
                         let fp0 = self.cpu.regs()[7];
                         let fp1: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
                         let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
