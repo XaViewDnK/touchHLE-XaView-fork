@@ -626,17 +626,21 @@ pub fn close(env: &mut Environment, fd: FileDescriptor) -> i32 {
 }
 
 fn rename(env: &mut Environment, old: ConstPtr<u8>, new: ConstPtr<u8>) -> i32 {
-    // TODO: handle errno properly
+    // BypassRenameCrash
     set_errno(env, 0);
 
-    let old = env.mem.cstr_at_utf8(old).unwrap();
-    let new = env.mem.cstr_at_utf8(new).unwrap();
-    let res = match env.fs.rename(GuestPath::new(&old), GuestPath::new(&new)) {
+    let old_str = match env.mem.cstr_at_utf8(old) {
+        Ok(s) => s,
+        Err(_) => return -1,
+    };
+    let new_str = match env.mem.cstr_at_utf8(new) {
+        Ok(s) => s,
+        Err(_) => return -1,
+    };
+    match env.fs.rename(GuestPath::new(old_str), GuestPath::new(new_str)) {
         Ok(_) => 0,
         Err(_) => -1,
-    };
-    log_dbg!("rename('{}', '{}') => {}", old, new, res);
-    res
+    }
 }
 
 pub fn getcwd(env: &mut Environment, buf_ptr: MutPtr<u8>, buf_size: GuestUSize) -> MutPtr<u8> {
@@ -690,24 +694,17 @@ pub fn getcwd(env: &mut Environment, buf_ptr: MutPtr<u8>, buf_size: GuestUSize) 
 }
 
 fn chdir(env: &mut Environment, path_ptr: ConstPtr<u8>) -> i32 {
-    // TODO: handle errno properly
+    // BypassChdirCrash
     set_errno(env, 0);
 
-    let path = GuestPath::new(env.mem.cstr_at_utf8(path_ptr).unwrap());
+    let path_str = match env.mem.cstr_at_utf8(path_ptr) {
+        Ok(s) => s,
+        Err(_) => return -1,
+    };
+    let path = GuestPath::new(path_str);
     match env.fs.change_working_directory(path) {
-        Ok(new) => {
-            log_dbg!(
-                "chdir({:?}) => 0, new working directory: {:?}",
-                path_ptr,
-                new,
-            );
-            0
-        }
-        Err(()) => {
-            log!("Warning: chdir({:?}) failed, could not change working directory to {:?}, returning -1", path_ptr, path);
-            // TODO: set errno
-            -1
-        }
+        Ok(_) => 0,
+        Err(_) => -1,
     }
 }
 // TODO: fchdir(), once open() on a directory is supported.
