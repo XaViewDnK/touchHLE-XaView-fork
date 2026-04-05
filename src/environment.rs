@@ -1669,7 +1669,13 @@ impl Environment {
                     self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
                 }
 
-                // RemoveAudioKillers
+                // SmartYield
+                if pc == 0x00c3296c || pc == 0x00c32bfc || pc == 0x00c3375c || pc == 0x00c3376c || pc == 0x00c33b7c || pc == 0x00c3350c || pc == 0x00c3352c || pc == 0x37496524 {
+                    if let Some(ticks) = &mut self.remaining_ticks {
+                        *ticks = 0;
+                    }
+                }
+
                 if pc == 0x00c32b3c {
                     // TargetedDoubleUnwind
                     echo!("WARNING: Unwinding smashed stack frame at {:#010x}! Thread: {}", pc, self.current_thread);
