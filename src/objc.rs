@@ -139,3 +139,8 @@ const FUNCTIONS: FunctionExports = &[
     export_c_func!(sel_registerName(_)),
     export_c_func!(_Block_object_dispose(_, _)),
 ];
+
+if is_static {
+            log::warn!("Ignored attempt to decrement refcount on static-lifetime object {:p}", ptr);
+            return;
+        }
