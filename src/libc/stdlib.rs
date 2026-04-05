@@ -535,10 +535,10 @@ fn dispatch_once(env: &mut Environment, predicate: MutPtr<i32>, block: ConstVoid
 }
 
 fn dispatch_async(env: &mut Environment, _queue: ConstVoidPtr, block: ConstVoidPtr) {
-    // ImplDispatchAsync
+    // SyncDispatchAsync
     let func_addr: u32 = env.mem.read((block.cast::<u8>() + 12).cast());
     let func = GuestFunction::from_addr_with_thumb_bit(func_addr);
-    env.new_thread(func, block.cast_mut(), 1024 * 1024);
+    let _: u32 = func.call_from_host(env, (block,));
 }
 
 fn SecItemCopyMatching(
@@ -723,24 +723,30 @@ fn class_respondsToSelector(
     false
 }
 
-fn __cxa_guard_acquire(env: &mut Environment, guard: MutPtr<u8>) -> i32 {
-    // FakeCxaGuardAcquire
-    let status = env.mem.read(guard);
-    if status == 0 {
-        env.mem.write(guard, 1);
-        return 1;
+fn __cxa_guard_acquire(env: &mut Environment, guard: MutPtr<u32>) -> i32 {
+    // FixCxaGuardAcquire
+    loop {
+        let status = env.mem.read(guard);
+        if (status & 1) != 0 {
+            return 0; // Already initialized
+        }
+        if status == 0 {
+            env.mem.write(guard, 2); // Mark in progress
+            return 1; // You are the initializer
+        }
+        // Wait for other thread to finish
+        env.sleep(std::time::Duration::from_millis(1));
     }
-    0
 }
 
-fn __cxa_guard_release(env: &mut Environment, guard: MutPtr<u8>) {
-    // FakeCxaGuardRelease
-    env.mem.write(guard, 2);
+fn __cxa_guard_release(env: &mut Environment, guard: MutPtr<u32>) {
+    // FixCxaGuardRelease
+    env.mem.write(guard, 1); // Mark as fully initialized
 }
 
-fn __cxa_guard_abort(env: &mut Environment, guard: MutPtr<u8>) {
-    // FakeCxaGuardAbort
-    env.mem.write(guard, 0);
+fn __cxa_guard_abort(env: &mut Environment, guard: MutPtr<u32>) {
+    // FixCxaGuardAbort
+    env.mem.write(guard, 0); // Revert to uninitialized
 }
 
 fn _Unwind_SjLj_RaiseException(env: &mut Environment, _ex: ConstVoidPtr) -> i32 {
