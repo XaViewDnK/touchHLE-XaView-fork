@@ -1671,33 +1671,31 @@ impl Environment {
 
                 // BypassBackgroundHangs
                 if (pc == 0x00c3296c || pc == 0x00c32bfc) && self.current_thread != 0 {
-                    echo!("WARNING: Safely unwinding background hang at {:#010x}! Thread: {}", pc, self.current_thread);
-                    let fp0 = self.cpu.regs()[7];
-                    let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
-                    let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
-                    self.cpu.regs_mut()[7] = prev_fp;
-                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
-                    self.cpu.regs_mut()[0] = 0;
-                    self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
+                    let lr = self.cpu.regs()[cpu::Cpu::LR];
+                    if lr == 0x005b991b || lr == 0x00a16403 || lr == 0x00838378 || lr == 0x00a54467 || lr == 0x0090665c {
+                        echo!("WARNING: Safely unwinding background hang at {:#010x}! Thread: {}", pc, self.current_thread);
+                        let fp0 = self.cpu.regs()[7];
+                        let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
+                        let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0 + 4));
+                        self.cpu.regs_mut()[7] = prev_fp;
+                        self.cpu.regs_mut()[cpu::Cpu::SP] = fp0 + 8;
+                        self.cpu.regs_mut()[0] = 0;
+                        self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
+                    }
                 } else if (pc == 0x00c3375c || pc == 0x00c3376c) && self.current_thread != 0 {
                     // DeepParserUnwind
-                    let r0 = self.cpu.regs()[0];
-                    let r1 = self.cpu.regs()[1];
-                    if let Ok(s) = self.mem.cstr_at_utf8(crate::mem::ConstPtr::<u8>::from_bits(r0)) {
-                        echo!("Parser string arg R0: {}", s);
+                    let lr = self.cpu.regs()[cpu::Cpu::LR];
+                    if lr == 0x005b991b || lr == 0x00a16403 || lr == 0x00838378 || lr == 0x00a54467 || lr == 0x0090665c {
+                        echo!("WARNING: Deep unwinding network parser loop at {:#010x}! Thread: {}", pc, self.current_thread);
+                        let fp0 = self.cpu.regs()[7];
+                        let fp1: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
+                        let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
+                        let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1 + 4));
+                        self.cpu.regs_mut()[7] = prev_fp;
+                        self.cpu.regs_mut()[cpu::Cpu::SP] = fp1 + 8;
+                        self.cpu.regs_mut()[0] = 0;
+                        self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
                     }
-                    if let Ok(s) = self.mem.cstr_at_utf8(crate::mem::ConstPtr::<u8>::from_bits(r1)) {
-                        echo!("Parser string arg R1: {}", s);
-                    }
-                    echo!("WARNING: Deep unwinding infinite parser loop at {:#010x}! Thread: {}", pc, self.current_thread);
-                    let fp0 = self.cpu.regs()[7];
-                    let fp1: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp0));
-                    let prev_fp: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1));
-                    let target_lr: u32 = self.mem.read(mem::ConstPtr::<u32>::from_bits(fp1 + 4));
-                    self.cpu.regs_mut()[7] = prev_fp;
-                    self.cpu.regs_mut()[cpu::Cpu::SP] = fp1 + 8;
-                    self.cpu.regs_mut()[0] = 0;
-                    self.cpu.branch(GuestFunction::from_addr_with_thumb_bit(target_lr));
                 } else if pc == 0x00c32b3c {
                     // TargetedDoubleUnwind
                     echo!("WARNING: Unwinding smashed stack frame at {:#010x}! Thread: {}", pc, self.current_thread);

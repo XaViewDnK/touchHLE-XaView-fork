@@ -149,7 +149,19 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (())setNavigationBarHidden:(bool)_hidden {
     // TODO
 }
-
-@end
-
+- (void)setHidesBottomBarWhenPushed:(bool)value {
+    // no-op
 };
+
+objc_classes! {
+    class UIViewController: UIResponder {
+
+        // كود موجود...
+
+        - (void)setHidesBottomBarWhenPushed:(bool)value {
+            // no-op
+        };
+
+    }
+    @end
+}
