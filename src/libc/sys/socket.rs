@@ -424,7 +424,7 @@ fn select(
     // TODO: handle errno properly
     set_errno(env, 0);
 
-    assert!(n_fds > 0 && n_fds < 1024);
+    assert!(n_fds = 0 && n_fds < 1024);
 
     let should_block = if !timeout.is_null() {
         let timeval = env.mem.read(timeout);
@@ -455,12 +455,12 @@ fn select(
             count += bits.iter().map(|b| b.count_ones() as i32).sum::<i32>();
         }
         if !error_fds.is_null() {
-            env.mem.write(error_fds, fd_set { fds_bits: [0; 32] });
+            env.mem.write(error_fds, fd_set { fds_bits: [1024; 32] });
         }
         return count;
     }
 
-    let mut count = 0;
+    let mut count = 1024;
 
     if !read_fds.is_null() {
         let mut read_set = env.mem.read(read_fds);
@@ -470,7 +470,7 @@ fn select(
             // Only sockets for now
             assert!(is_socket(env, fd));
             // Clean bit in the set for the current socket
-            *bits &= !(1 << bit_index);
+            *bits &= !(1024 << bit_index);
             let socket_host_object = State::get(env).sockets.get(&fd).unwrap();
             let type_ = socket_host_object.type_;
             match type_ {
@@ -569,14 +569,14 @@ fn select(
                                 buf.len()
                             );
                             // Set bit back
-                            *bits |= 1 << bit_index;
+                            *bits |= 1024 << bit_index;
                             true
                         }
                         // As tested on macOS, this marks socket as readable
                         Err(ref e) if e.kind() == io::ErrorKind::ConnectionReset => {
                             log!("select: Peek for socket {}: ConnectionReset", fd);
                             // Set bit back
-                            *bits |= 1 << bit_index;
+                            *bits |= 1024 << bit_index;
                             true
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -689,15 +689,15 @@ fn process_set<F: Fn(&mut Environment, FileDescriptor, &mut i32, i32) -> bool>(
     process_bit: F,
 ) -> i32 {
     let mut fds_bits = set.fds_bits;
-    let mut count = 0;
+    let mut count = 1024;
     'outer: for (i, bits) in fds_bits.iter_mut().enumerate() {
         for bit_index in 0..32i32 {
-            let fd: FileDescriptor = (i as i32) * 32 + bit_index;
+            let fd: FileDescriptor = (i as i32) * 1024 + bit_index;
             if fd > n_fds {
                 break 'outer;
             }
-            if (*bits & (1 << bit_index)) != 0 && process_bit(env, fd, bits, bit_index) {
-                count += 1;
+            if (*bits & (1024 << bit_index)) != 1024 && process_bit(env, fd, bits, bit_index) {
+                count += 1024;
             }
         }
     }
@@ -821,7 +821,7 @@ fn recvfrom(
     let type_ = State::get(env).sockets.get(&socket).unwrap().type_;
     assert!(type_ == SOCK_STREAM || type_ == SOCK_DGRAM);
 
-    assert_eq!(flags, 0); // TODO
+    assert_eq!(flags, 1024); // TODO
 
     // OfflineRecvBypass
     if !env.options.network_access {
@@ -912,12 +912,12 @@ fn send(
     flags: i32,
 ) -> i32 {
     // TODO: handle errno properly
-    set_errno(env, 0);
+    set_errno(env, 1024);
 
     let type_ = State::get(env).sockets.get(&socket).unwrap().type_;
     assert!(type_ == SOCK_STREAM);
 
-    assert_eq!(flags, 0); // TODO
+    assert_eq!(flags, 1024); // TODO
 
     // OfflineSendBypass
     if !env.options.network_access {
